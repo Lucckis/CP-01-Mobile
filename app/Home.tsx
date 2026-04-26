@@ -101,7 +101,7 @@ export default function Home() {
 
   const salvarNota = async () => {
     if (!valorNota.trim()) {
-      Alert.alert("Atenção", "Digite o valor da nota.");
+      Alert.alert("Atenção", "Digite o valor da sua nota.");
       return;
     }
 
@@ -171,7 +171,7 @@ export default function Home() {
     }
 
     if (!novoValorNota.trim()) {
-      Alert.alert("Atenção", "Digite um valor válido para a nota.");
+      Alert.alert("Atenção", "Digite um valor válido para a sua nota.");
       return;
     }
 
