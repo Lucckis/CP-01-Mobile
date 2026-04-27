@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from "react";
 import {
   Text,
   StyleSheet,
@@ -10,15 +11,14 @@ import {
   FlatList,
   Modal,
   TouchableOpacity,
+  Image,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
 import { auth, db } from "../src/services/firebaseConfig";
-import { deleteUser, onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged } from "firebase/auth";
 import ItemNota from "./components/ItemNota";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState, useEffect } from "react";
-import { salvarNotaUsuario } from "../src/services/userDataService";
 import {
   collection,
   onSnapshot,
@@ -32,21 +32,26 @@ import {
   updateDoc,
 } from "firebase/firestore";
 
+import { useTranslation } from "react-i18next";
+
 type Nota = {
   id: string;
   valor: string;
 };
 
 export default function Home() {
+  const { t, i18n } = useTranslation();
+  const router = useRouter();
+
   const [valorNota, setValorNota] = useState("");
-
   const [notas, setNotas] = useState<Nota[]>([]);
-
   const [modalEditarVisivel, setModalEditarVisivel] = useState(false);
   const [notaSelecionadaId, setNotaSelecionadaId] = useState("");
   const [novoValorNota, setNovoValorNota] = useState("");
 
-  const router = useRouter();
+  const mudarIdioma = (lang: string) => {
+    i18n.changeLanguage(lang);
+  };
 
   useEffect(() => {
     let unsubscribeNotas: (() => void) | undefined;
@@ -63,7 +68,6 @@ export default function Home() {
       }
 
       const notasRef = collection(db, "notes");
-
       const notasQuery = query(
         notasRef,
         where("uid", "==", user.uid),
@@ -77,7 +81,6 @@ export default function Home() {
             id: doc.id,
             valor: doc.data().valor ?? "",
           }));
-
           setNotas(dados);
         },
         (error) => {
@@ -88,9 +91,7 @@ export default function Home() {
 
     return () => {
       unsubscribeAuth();
-      if (unsubscribeNotas) {
-        unsubscribeNotas();
-      }
+      if (unsubscribeNotas) unsubscribeNotas();
     };
   }, []);
 
@@ -101,13 +102,13 @@ export default function Home() {
 
   const salvarNota = async () => {
     if (!valorNota.trim()) {
-      Alert.alert("Atenção", "Digite o valor da sua nota.");
+      Alert.alert(t("alert_attention"), t("alert_enter_note_value"));
       return;
     }
 
     const user = auth.currentUser;
     if (!user) {
-      Alert.alert("Erro", "Nenhum usuário autenticado.");
+      Alert.alert(t("alert_error"), t("alert_unauthenticated"));
       return;
     }
 
@@ -117,8 +118,6 @@ export default function Home() {
         uid: user.uid,
         createdAt: serverTimestamp(),
       });
-
-      Alert.alert("Sucesso", "Nota salva!");
       setValorNota("");
     } catch (error) {
       console.log("Erro ao salvar nota:", error);
@@ -126,33 +125,17 @@ export default function Home() {
   };
 
   const excluirNota = async (nota: Nota) => {
-    const user = auth.currentUser;
-
-    if (!user) {
-      console.log("Nenhum usuário autenticado");
-      return;
-    }
-
     try {
       const notaRef = doc(db, "notes", nota.id);
-
       await deleteDoc(notaRef);
-
-      console.log("Nota excluída com sucesso!");
     } catch (error) {
       console.log("Erro ao excluir nota:", error);
     }
   };
 
-  const abrirModalEdicao = (nota?: Nota) => {
-    if (nota) {
-      setNotaSelecionadaId(nota.id);
-      setNovoValorNota(nota.valor);
-    } else {
-      setNotaSelecionadaId("");
-      setNovoValorNota("");
-    }
-
+  const abrirModalEdicao = (nota: Nota) => {
+    setNotaSelecionadaId(nota.id);
+    setNovoValorNota(nota.valor);
     setModalEditarVisivel(true);
   };
 
@@ -163,42 +146,50 @@ export default function Home() {
   };
 
   const atualizarNota = async () => {
-    const user = auth.currentUser;
-
-    if (!user) {
-      Alert.alert("Erro", "Nenhum usuário autenticado.");
-      return;
-    }
-
     if (!novoValorNota.trim()) {
-      Alert.alert("Atenção", "Digite um valor válido para a sua nota.");
+      Alert.alert(t("alert_attention"), t("alert_enter_valid_note"));
       return;
     }
 
     try {
       const notaRef = doc(db, "notes", notaSelecionadaId);
-
-      await updateDoc(notaRef, {
-        valor: novoValorNota.trim(),
-      });
-
+      await updateDoc(notaRef, { valor: novoValorNota.trim() });
       fecharModalEdicao();
-      Alert.alert("Sucesso", "Nota editada com sucesso.");
+      Alert.alert(t("alert_success"), t("alert_note_updated"));
     } catch (error) {
-      console.log("Erro ao atualizar nota", error);
-      Alert.alert("Erro", "Não foi possível atualizar a nota.");
+      Alert.alert(t("alert_error"), t("alert_update_failed"));
     }
   };
 
   return (
     <SafeAreaView style={styles.main}>
       <KeyboardAvoidingView
-        style={styles.main}
+        style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={10}
       >
-        <Text>Tela Home</Text>
-        <Button title="Realizar logoff" onPress={realizarLogoff} />
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.headerTitle}>{t("home_title")}</Text>
+            <TouchableOpacity onPress={realizarLogoff}>
+              <Text style={styles.logoutText}>{t("logout_button")}</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.languageContainer}>
+            <TouchableOpacity onPress={() => mudarIdioma("en")}>
+              <Image
+                source={require("../assets/eua.png")}
+                style={styles.flagIcon}
+              />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => mudarIdioma("pt")}>
+              <Image
+                source={require("../assets/brasil.png")}
+                style={styles.flagIcon}
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
 
         <FlatList
           data={notas}
@@ -213,132 +204,134 @@ export default function Home() {
           )}
           keyExtractor={(item) => item.id}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>Nenhuma nota cadastrada.</Text>
+            <Text style={styles.emptyText}>{t("no_notes_found")}</Text>
           }
         />
 
         <Modal
           visible={modalEditarVisivel}
           transparent
-          animationType="slide"
+          animationType="fade"
           onRequestClose={fecharModalEdicao}
         >
           <View style={styles.modalOverlay}>
             <View style={styles.modalContainer}>
-              <Text style={styles.modalTitulo}>Atualizar Nota</Text>
-
+              <Text style={styles.modalTitulo}>{t("modal_update_title")}</Text>
               <TextInput
                 style={styles.modalInput}
                 value={novoValorNota}
-                onChangeText={(value) => setNovoValorNota(value)}
-                placeholder="Digite o novo valor da nota."
+                onChangeText={setNovoValorNota}
+                placeholder={t("modal_input_placeholder")}
+                placeholderTextColor="#aaa"
               />
-
               <View style={styles.modalButtonsContainer}>
                 <TouchableOpacity
                   style={styles.modalButtonCancel}
                   onPress={fecharModalEdicao}
                 >
-                  <Text>Cancelar</Text>
+                  <Text style={{ color: "#fff" }}>{t("cancel")}</Text>
                 </TouchableOpacity>
-
                 <TouchableOpacity
                   style={styles.modalButtonSave}
                   onPress={atualizarNota}
                 >
-                  <Text style={styles.modalButtonSaveText}>Salvar</Text>
+                  <Text style={styles.modalButtonSaveText}>{t("save")}</Text>
                 </TouchableOpacity>
               </View>
             </View>
           </View>
         </Modal>
 
-        <TextInput
-          placeholder="Digite o valor da nota"
-          style={styles.input}
-          value={valorNota}
-          onChangeText={(value) => setValorNota(value)}
-          onSubmitEditing={salvarNota}
-        />
+        <View style={styles.inputContainer}>
+          <TextInput
+            placeholder={t("input_note_placeholder")}
+            placeholderTextColor="#aaa"
+            style={styles.input}
+            value={valorNota}
+            onChangeText={setValorNota}
+            onSubmitEditing={salvarNota}
+          />
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
+
 const styles = StyleSheet.create({
-  main: {
-    flex: 1,
+  main: { flex: 1, backgroundColor: "#121212" },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    justifyContent: "flex-start",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#333",
   },
-  input: {
-    backgroundColor: "lightgrey",
-    padding: 10,
-    fontSize: 15,
-    width: "90%",
-    alignSelf: "center",
-    borderRadius: 10,
-    marginTop: "auto",
-  },
-  lista: {
-    width: "100%",
-    marginTop: 16,
-    flex: 1,
-  },
-  listaConteudo: {
-    gap: 8,
-    paddingBottom: 12,
-  },
+  headerTitle: { color: "#fff", fontSize: 24, fontWeight: "bold" },
+  logoutText: { color: "#ff4444", fontSize: 14, fontWeight: "600" },
+  languageContainer: { flexDirection: "row", gap: 15 },
+  flagIcon: { width: 35, height: 35, borderRadius: 17.5 },
+  lista: { flex: 1 },
+  listaConteudo: { padding: 20, gap: 10 },
   emptyText: {
     textAlign: "center",
-    fontSize: 22,
-    marginTop: 20,
+    color: "#aaa",
+    fontSize: 18,
+    marginTop: 40,
+  },
+  inputContainer: { padding: 20, backgroundColor: "#121212" },
+  input: {
+    backgroundColor: "#1E1E1E",
+    color: "#fff",
+    padding: 15,
+    borderRadius: 10,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: "#333",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgb(0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.8)",
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
   },
   modalContainer: {
     width: "100%",
-    backgroundColor: "white",
-    borderRadius: 10,
-    padding: 16,
-    gap: 12,
+    backgroundColor: "#1E1E1E",
+    borderRadius: 15,
+    padding: 20,
+    gap: 15,
+    borderWidth: 1,
+    borderColor: "#444",
   },
   modalTitulo: {
-    fontSize: 18,
-    fontWeight: "600",
+    color: "#fff",
+    fontSize: 20,
+    fontWeight: "bold",
     textAlign: "center",
   },
   modalInput: {
-    backgroundColor: "lightgrey",
+    backgroundColor: "#333",
+    color: "#fff",
+    padding: 12,
     borderRadius: 8,
-    padding: 10,
     fontSize: 16,
   },
-  modalButtonsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 10,
-  },
+  modalButtonsContainer: { flexDirection: "row", gap: 10 },
   modalButtonCancel: {
     flex: 1,
     alignItems: "center",
-    padding: 10,
+    padding: 12,
+    backgroundColor: "#444",
     borderRadius: 8,
-    backgroundColor: "lightgrey",
   },
   modalButtonSave: {
     flex: 1,
     alignItems: "center",
-    padding: 10,
+    padding: 12,
+    backgroundColor: "#00B37E",
     borderRadius: 8,
-    backgroundColor: "green",
   },
-  modalButtonSaveText: {
-    color: "white",
-    fontWeight: "600",
-  },
+  modalButtonSaveText: { color: "#fff", fontWeight: "bold" },
 });
