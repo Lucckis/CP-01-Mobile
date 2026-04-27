@@ -12,7 +12,11 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.seuusuario.notasapp",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "O notasApp precisa da sua localização para salvar onde a nota foi criada."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,13 +25,24 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "package": "com.seuusuario.notasapp",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "FOREGROUND_SERVICE"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationAlwaysPermission": "O notasApp precisa da sua localização para salvar onde a nota foi criada."
+        }
+      ]
     ]
   }
 }

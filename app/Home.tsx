@@ -3,7 +3,6 @@ import {
   Text,
   StyleSheet,
   View,
-  Button,
   Alert,
   TextInput,
   KeyboardAvoidingView,
@@ -26,17 +25,20 @@ import {
   query,
   where,
   doc,
-  addDoc,
-  serverTimestamp,
   deleteDoc,
   updateDoc,
 } from "firebase/firestore";
-
+import { salvarNotaUsuario } from "../src/services/userDataService";
 import { useTranslation } from "react-i18next";
+
+import * as Location from "expo-location";
 
 type Nota = {
   id: string;
   valor: string;
+  latitude?: number;
+  longitude?: number;
+  endereco?: string;
 };
 
 export default function Home() {
@@ -49,56 +51,48 @@ export default function Home() {
   const [notaSelecionadaId, setNotaSelecionadaId] = useState("");
   const [novoValorNota, setNovoValorNota] = useState("");
 
-  const mudarIdioma = (lang: string) => {
-    i18n.changeLanguage(lang);
-  };
+  const mudarIdioma = (lang: string) => i18n.changeLanguage(lang);
+
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert(t("alert_attention"), t("alert_location_permission"));
+      }
+    })();
+  }, []);
 
   useEffect(() => {
     let unsubscribeNotas: (() => void) | undefined;
-
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (unsubscribeNotas) {
-        unsubscribeNotas();
-        unsubscribeNotas = undefined;
-      }
-
+      if (unsubscribeNotas) unsubscribeNotas();
       if (!user) {
         setNotas([]);
         return;
       }
 
-      const notasRef = collection(db, "notes");
       const notasQuery = query(
-        notasRef,
+        collection(db, "notes"),
         where("uid", "==", user.uid),
         orderBy("createdAt", "desc"),
       );
 
-      unsubscribeNotas = onSnapshot(
-        notasQuery,
-        (snapshot) => {
-          const dados = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            valor: doc.data().valor ?? "",
-          }));
-          setNotas(dados);
-        },
-        (error) => {
-          console.log("Erro ao buscar notas:", error);
-        },
-      );
+      unsubscribeNotas = onSnapshot(notasQuery, (snapshot) => {
+        const dados = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          valor: doc.data().valor ?? doc.data().Valor ?? "",
+          latitude: doc.data().latitude,
+          longitude: doc.data().longitude,
+          endereco: doc.data().endereco,
+        }));
+        setNotas(dados);
+      });
     });
-
     return () => {
       unsubscribeAuth();
       if (unsubscribeNotas) unsubscribeNotas();
     };
   }, []);
-
-  const realizarLogoff = async () => {
-    await AsyncStorage.removeItem("@user");
-    router.replace("/");
-  };
 
   const salvarNota = async () => {
     if (!valorNota.trim()) {
@@ -107,29 +101,45 @@ export default function Home() {
     }
 
     const user = auth.currentUser;
-    if (!user) {
-      Alert.alert(t("alert_error"), t("alert_unauthenticated"));
-      return;
-    }
+    if (!user) return;
 
     try {
-      await addDoc(collection(db, "notes"), {
-        valor: valorNota.trim(),
-        uid: user.uid,
-        createdAt: serverTimestamp(),
+      let location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+
+      let reverseGeocode = await Location.reverseGeocodeAsync({
+        latitude,
+        longitude,
       });
+      let enderecoStr = reverseGeocode[0]
+        ? `${reverseGeocode[0].street}, ${reverseGeocode[0].city}`
+        : null;
+
+      await salvarNotaUsuario(
+        user.uid,
+        valorNota.trim(),
+        latitude,
+        longitude,
+        enderecoStr,
+      );
       setValorNota("");
     } catch (error) {
       console.log("Erro ao salvar nota:", error);
+      await salvarNotaUsuario(user.uid, valorNota.trim(), null, null, null);
+      setValorNota("");
     }
+  };
+
+  const realizarLogoff = async () => {
+    await AsyncStorage.removeItem("@user");
+    router.replace("/");
   };
 
   const excluirNota = async (nota: Nota) => {
     try {
-      const notaRef = doc(db, "notes", nota.id);
-      await deleteDoc(notaRef);
+      await deleteDoc(doc(db, "notes", nota.id));
     } catch (error) {
-      console.log("Erro ao excluir nota:", error);
+      console.log(error);
     }
   };
 
@@ -146,16 +156,11 @@ export default function Home() {
   };
 
   const atualizarNota = async () => {
-    if (!novoValorNota.trim()) {
-      Alert.alert(t("alert_attention"), t("alert_enter_valid_note"));
-      return;
-    }
-
     try {
-      const notaRef = doc(db, "notes", notaSelecionadaId);
-      await updateDoc(notaRef, { valor: novoValorNota.trim() });
+      await updateDoc(doc(db, "notes", notaSelecionadaId), {
+        valor: novoValorNota.trim(),
+      });
       fecharModalEdicao();
-      Alert.alert(t("alert_success"), t("alert_note_updated"));
     } catch (error) {
       Alert.alert(t("alert_error"), t("alert_update_failed"));
     }
@@ -174,7 +179,6 @@ export default function Home() {
               <Text style={styles.logoutText}>{t("logout_button")}</Text>
             </TouchableOpacity>
           </View>
-
           <View style={styles.languageContainer}>
             <TouchableOpacity onPress={() => mudarIdioma("en")}>
               <Image
@@ -198,6 +202,9 @@ export default function Home() {
           renderItem={({ item }) => (
             <ItemNota
               valor={item.valor}
+              latitude={item.latitude}
+              longitude={item.longitude}
+              endereco={item.endereco}
               onDeletePress={() => excluirNota(item)}
               onEditPress={() => abrirModalEdicao(item)}
             />
@@ -221,8 +228,6 @@ export default function Home() {
                 style={styles.modalInput}
                 value={novoValorNota}
                 onChangeText={setNovoValorNota}
-                placeholder={t("modal_input_placeholder")}
-                placeholderTextColor="#aaa"
               />
               <View style={styles.modalButtonsContainer}>
                 <TouchableOpacity
@@ -272,7 +277,7 @@ const styles = StyleSheet.create({
   languageContainer: { flexDirection: "row", gap: 15 },
   flagIcon: { width: 35, height: 35, borderRadius: 17.5 },
   lista: { flex: 1 },
-  listaConteudo: { padding: 20, gap: 10 },
+  listaConteudo: { padding: 15 },
   emptyText: {
     textAlign: "center",
     color: "#aaa",
