@@ -17,8 +17,8 @@ Este projeto é uma aplicação mobile desenvolvida para a disciplina de Mobile 
 * **Framework:** React Native com Expo
 * **Linguagem:** JavaScript/TypeScript
 * **Backend as a Service (BaaS):** Firebase
-  * **Authentication:** Gestão de utilizadores (E-mail/Senha)
-  * **Cloud Firestore:** Base de dados NoSQL para as notas
+  * **Authentication:** Gestão de utilizadores (E-mail/Senha).
+  * **Cloud Firestore:** Base de dados NoSQL para as notas.
 * **Internacionalização:** i18next + react-i18next
 * **Geolocalização:** expo-location
 * **Mapas:** react-native-maps
@@ -28,6 +28,8 @@ Este projeto é uma aplicação mobile desenvolvida para a disciplina de Mobile 
 ---
 
 ## Configuração do Firebase
+
+A integração entre o Frontend e o Backend foi feita através do SDK de JavaScript do Firebase, configurado como um Web App para total compatibilidade com o ambiente React Native:
 
 ```javascript
 import { initializeApp } from "firebase/app";
@@ -43,7 +45,6 @@ const firebaseConfig = {
   appId: "1:366626800281:web:e2a56c49b00cc342a46e08",
   measurementId: "G-8C5N1M40WK"
 };
-
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
@@ -51,11 +52,13 @@ export const db = getFirestore(app);
 
 ---
 
-## Funcionalidades da Fase 1 (mantidas)
+## Funcionalidades do CRUD (Fase 1)
 
-* **Autenticação:** Cadastro, Login, Logout e recuperação de senha por e-mail.
-* **CRUD de Notas:** Criar, listar (filtrado por utilizador), editar e deletar notas em tempo real com Firestore.
-* **Persistência de sessão:** Sessão mantida via AsyncStorage.
+* **Autenticação:** Cadastro, Login e Logout de utilizadores.
+* **Criar Nota:** Notas salvas com título, conteúdo e ID do proprietário.
+* **Listar:** Exibição filtrada apenas para o utilizador logado.
+* **Editar:** Atualização de notas existentes em tempo real.
+* **Deletar:** Remoção de notas da base de dados.
 
 ---
 
@@ -81,7 +84,6 @@ src/
 - A troca é instantânea e afeta toda a interface sem recarregar o app.
 
 ```typescript
-// src/services/i18n.ts
 i18n.use(initReactI18next).init({
   lng: "pt",
   fallbackLng: "en",
@@ -100,7 +102,6 @@ i18n.use(initReactI18next).init({
 Ao salvar uma nota, o app solicita a localização atual via `expo-location` e armazena `latitude`, `longitude` e `endereco` no documento da nota no Firestore.
 
 ```typescript
-// Home.tsx — captura ao salvar
 let location = await Location.getCurrentPositionAsync({});
 const { latitude, longitude } = location.coords;
 await salvarNotaUsuario(user.uid, valorNota.trim(), latitude, longitude, enderecoStr);
@@ -119,10 +120,9 @@ await salvarNotaUsuario(user.uid, valorNota.trim(), latitude, longitude, enderec
 ```
 
 **Visualização do mapa:**
-Cada nota que possui coordenadas exibe um ícone de localização (📍). Ao tocar, abre um modal em tela cheia com `react-native-maps` mostrando um **Pin (Marker)** no local exato onde a nota foi criada.
+Cada nota que possui coordenadas exibe um ícone de localização. Ao tocar, abre um modal em tela cheia com `react-native-maps` mostrando um **Pin (Marker)** no local exato onde a nota foi criada.
 
 ```javascript
-// ItemNota.js — modal com mapa
 <MapView initialRegion={{ latitude, longitude, latitudeDelta: 0.005, longitudeDelta: 0.005 }}>
   <Marker coordinate={{ latitude, longitude }} title={valor} description={endereco} />
 </MapView>
@@ -156,7 +156,7 @@ let enderecoStr = reverseGeocode[0]
 
 ### 4. Notificações Locais
 
-O app utiliza `expo-notifications` para disparar notificações locais em dois momentos:
+O app utiliza `expo-notifications` para disparar notificações locais:
 
 | Evento | Notificação |
 |---|---|
@@ -168,7 +168,6 @@ O app utiliza `expo-notifications` para disparar notificações locais em dois m
 3. O token de push (Expo Push Token) é gerado e logado para uso futuro com FCM.
 
 ```typescript
-// Configuração do handler
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -177,7 +176,6 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Disparo ao salvar nota
 await Notifications.scheduleNotificationAsync({
   content: {
     title: t("notification_new_note_title"),
@@ -214,7 +212,7 @@ O projeto está configurado com **EAS Build** para geração do APK instalável.
 eas build -p android --profile preview
 ```
 
-> O arquivo `.apk` pode ser baixado no android
+> O arquivo `.apk` pode ser instalado no seu celular android
 
 **Download do APK:**
 [Baixar APK](https://expo.dev/accounts/lucckis/projects/notasApp/builds/4369bd2a-1da4-4775-b365-92538ef594ad)
@@ -231,6 +229,7 @@ git clone https://github.com/Lucckis/CP-01-Mobile.git
 ### 2. Instale as dependências:
 ```bash
 npm install
+npm install firebase
 ```
 
 ### 3. Inicie o servidor do Expo:
@@ -238,14 +237,14 @@ npm install
 npx expo start
 ```
 
-### 4. Teste no dispositivo:
-Utilize o app **Expo Go** no celular ou utilize um emulador Android
+### 4. Teste:
+Utilize o app **Expo Go** no seu celular ou o emulador android
 ---
 
-## Vídeo de Demonstração Fase 1
+## Vídeo de Demonstração — Fase 1
 
-[![Vídeo de Demonstração](https://img.youtube.com/vi/H_acUOMMguc/hqdefault.jpg)](https://youtu.be/H_acUOMMguc?si=dB0bSQlfo3tgjgPC)
+[![Vídeo de Demonstração Fase 1](https://img.youtube.com/vi/H_acUOMMguc/hqdefault.jpg)](https://youtu.be/H_acUOMMguc?si=dB0bSQlfo3tgjgPC)
 
-## Vídeo de Demonstração Fase 2
+## Vídeo de Demonstração — Fase 2
 
-[![Vídeo de Demonstração](https://img.youtube.com/vi/wNG7_n6WFAQ/hqdefault.jpg)](https://youtu.be/wNG7_n6WFAQ?si=MOv57QcI8SYSVUXE)
+[![Vídeo de Demonstração Fase 2](https://img.youtube.com/vi/wNG7_n6WFAQ/hqdefault.jpg)](https://youtu.be/wNG7_n6WFAQ?si=MOv57QcI8SYSVUXE)
