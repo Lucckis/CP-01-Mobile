@@ -1,0 +1,18 @@
+{
+  "welcome": "Welcome to NotasApp",
+  "email_placeholder": "Email",
+  "password_placeholder": "Password",
+  "login_button": "Login",
+  "register_link": "Sign up",
+  "forgot_password_link": "Forgot password?",
+  "alert_attention": "Attention",
+  "alert_fill_all_fields": "Please fill in all fields!",
+  "alert_invalid_credentials": "Invalid credentials, please check your email and password.",
+  "ok": "OK",
+  "alert_error": "Error",
+  "alert_enter_email_recovery": "Enter your email to recover your password.",
+  "alert_success": "Success",
+  "alert_recovery_email_sent": "Password reset email sent!",
+  "alert_recovery_email_failed": "Password reset email NOT sent.",
+    "choose_language": "Choose language"
+}

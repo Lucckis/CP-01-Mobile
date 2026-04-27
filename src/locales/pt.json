@@ -1,0 +1,18 @@
+{
+  "welcome": "Bem-vindo ao NotasApp",
+  "email_placeholder": "E-mail",
+  "password_placeholder": "Senha",
+  "login_button": "Entrar",
+  "register_link": "Cadastre-se",
+  "forgot_password_link": "Esqueceu a senha?",
+  "alert_attention": "Atenção",
+  "alert_fill_all_fields": "Preencha todos os campos!",
+  "alert_invalid_credentials": "Credenciais Inválidas, verifique e-mail e senha.",
+  "ok": "OK",
+  "alert_error": "Erro",
+  "alert_enter_email_recovery": "Digite seu e-mail para recuperar a senha.",
+  "alert_success": "Sucesso",
+  "alert_recovery_email_sent": "E-mail de redefinição enviado!",
+  "alert_recovery_email_failed": "E-mail de redefinição NÃO enviado.",
+  "choose_language": "Escolha o idioma"
+}

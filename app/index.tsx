@@ -1,13 +1,13 @@
 import { Link } from "expo-router";
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
-  Image,
   View,
   Text,
   TextInput,
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Image,
 } from "react-native";
 import { auth } from "../src/services/firebaseConfig";
 import {
@@ -18,60 +18,59 @@ import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { registrarUltimoLogin } from "../src/services/userDataService";
 
+import { useTranslation } from "react-i18next";
+
 export default function LoginScreen() {
+  const { t, i18n } = useTranslation();
+
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
-
   const router = useRouter();
+
+  const mudarIdioma = (lang: string) => {
+    i18n.changeLanguage(lang);
+  };
 
   const handleLogin = () => {
     if (!email || !senha) {
-      Alert.alert("Atenção", "Preencha todos os campos!");
+      Alert.alert(t("alert_attention"), t("alert_fill_all_fields"));
       return;
     }
     signInWithEmailAndPassword(auth, email, senha)
       .then(async (userCredential) => {
         const user = userCredential.user;
         await registrarUltimoLogin(user.uid, user.email);
-
         await AsyncStorage.setItem("@user", JSON.stringify(user));
         router.replace("/Home");
       })
       .catch((error) => {
-        const errorCode = error.code;
-        const errorMessage = error.message;
-        console.log(errorCode, errorMessage);
-        Alert.alert(
-          "ATENÇÃO",
-          "Credenciais Inválidas, verifique e-mail e senha:",
-          [{ text: "OK" }],
-        );
+        Alert.alert(t("alert_attention"), t("alert_invalid_credentials"), [
+          { text: t("ok") },
+        ]);
       });
   };
 
   const esqueceuSenha = () => {
     if (!email) {
-      Alert.alert("Error", "Digite seu e-mail para recuperar a senha.");
+      Alert.alert(t("alert_error"), t("alert_enter_email_recovery"));
+      return;
     }
     sendPasswordResetEmail(auth, email)
       .then(() => {
-        Alert.alert("Sucesso", "E-mail de redefinição enviado!");
+        Alert.alert(t("alert_success"), t("alert_recovery_email_sent"));
       })
       .catch((error) => {
-        console.log("Error ao enviado e-mail de redefinição", error.message);
-        Alert.alert("Error", "E-mail de redefinição NÃO enviado.");
+        Alert.alert(t("alert_error"), t("alert_recovery_email_failed"));
       });
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.titulo}>{("welcome")}</Text>
+      <Text style={styles.titulo}>{t("welcome")}</Text>
 
-
-      {/* Campo Email */}
       <TextInput
         style={styles.input}
-        placeholder={("email")}
+        placeholder={t("email_placeholder")}
         placeholderTextColor="#aaa"
         keyboardType="email-address"
         autoCapitalize="none"
@@ -79,27 +78,53 @@ export default function LoginScreen() {
         onChangeText={setEmail}
       />
 
-      {/* Campo Senha */}
       <TextInput
         style={styles.input}
-        placeholder={("password")}
+        placeholder={t("password_placeholder")}
         placeholderTextColor="#aaa"
         secureTextEntry
         value={senha}
         onChangeText={setSenha}
       />
 
-      {/* Botão */}
       <TouchableOpacity style={styles.botao} onPress={handleLogin}>
-        <Text style={styles.textoBotao}>Login</Text>
+        <Text style={styles.textoBotao}>{t("login_button")}</Text>
       </TouchableOpacity>
 
-      <View style={{alignItems:"center"}}>
-        <Link href="CadastroScreen" style={{ marginTop: 20, color: 'white' }}>{("register")}</Link>
+      <View style={{ alignItems: "center" }}>
+        <Link href="CadastroScreen" style={{ marginTop: 20, color: "white" }}>
+          {t("register_link")}
+        </Link>
 
         <TouchableOpacity onPress={esqueceuSenha}>
-          <Text style={{ marginTop: 20, color: 'white' }}>{("forgotpassword")}</Text>
+          <Text style={{ marginTop: 20, color: "white" }}>
+            {t("forgot_password_link")}
+          </Text>
         </TouchableOpacity>
+      </View>
+
+      <View style={{ alignItems: "center", marginTop: 40 }}>
+        <Text style={{ color: "white", fontSize: 16, marginBottom: 15 }}>
+          {t("choose_language")}
+        </Text>
+
+        <View
+          style={{ flexDirection: "row", justifyContent: "center", gap: 30 }}
+        >
+          <TouchableOpacity onPress={() => mudarIdioma("en")}>
+            <Image
+              source={require("../assets/eua.png")}
+              style={{ width: 45, height: 45 }}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => mudarIdioma("pt")}>
+            <Image
+              source={require("../assets/brasil.png")}
+              style={{ width: 45, height: 45 }}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -108,37 +133,32 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
-    justifyContent: 'center',
+    backgroundColor: "#121212",
+    justifyContent: "center",
     padding: 20,
   },
   titulo: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
     marginBottom: 30,
-    textAlign: 'center',
+    textAlign: "center",
   },
   input: {
-    backgroundColor: '#1E1E1E',
-    color: '#fff',
+    backgroundColor: "#1E1E1E",
+    color: "#fff",
     borderRadius: 10,
     padding: 15,
     marginBottom: 15,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: "#333",
   },
   botao: {
-    backgroundColor: '#00B37E',
+    backgroundColor: "#00B37E",
     padding: 15,
     borderRadius: 10,
-    alignItems: 'center',
+    alignItems: "center",
   },
-  textoBotao: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
+  textoBotao: { color: "#fff", fontSize: 18, fontWeight: "bold" },
 });
-
