@@ -14,5 +14,9 @@
   "alert_success": "Success",
   "alert_recovery_email_sent": "Password reset email sent!",
   "alert_recovery_email_failed": "Password reset email NOT sent.",
-    "choose_language": "Choose language"
+  "choose_language": "Choose language",
+  "register_title": "Create Account",
+  "full_name_placeholder": "Full name",
+  "register_button": "Register",
+  "alert_registration_failed": "Registration failed. Please try again."
 }

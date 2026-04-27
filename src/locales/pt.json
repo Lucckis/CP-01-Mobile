@@ -14,5 +14,9 @@
   "alert_success": "Sucesso",
   "alert_recovery_email_sent": "E-mail de redefinição enviado!",
   "alert_recovery_email_failed": "E-mail de redefinição NÃO enviado.",
-  "choose_language": "Escolha o idioma"
+  "choose_language": "Escolha o idioma",
+  "register_title": "Criar Conta",
+  "full_name_placeholder": "Nome completo",
+  "register_button": "Cadastrar",
+  "alert_registration_failed": "Falha ao criar conta. Tente novamente."
 }

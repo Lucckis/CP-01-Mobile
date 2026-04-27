@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Image,
 } from "react-native";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../src/services/firebaseConfig";
@@ -13,16 +14,23 @@ import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { criarUsuario } from "../src/services/userDataService";
 
+import { useTranslation } from "react-i18next";
+
 export default function CadastroScreen() {
+  const { t, i18n } = useTranslation();
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
 
   const router = useRouter();
 
+  const mudarIdioma = (lang: string) => {
+    i18n.changeLanguage(lang);
+  };
+
   const handleCadastro = () => {
     if (!nome || !email || !senha) {
-      Alert.alert("Atenção", "Preencha todos os campos!");
+      Alert.alert(t("alert_attention"), t("alert_fill_all_fields"));
       return;
     }
     createUserWithEmailAndPassword(auth, email, senha)
@@ -42,26 +50,25 @@ export default function CadastroScreen() {
         const errorCode = error.code;
         const errorMessage = error.message;
         console.log(errorCode + " " + errorMessage);
+        Alert.alert(t("alert_error"), t("alert_registration_failed"));
       });
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.titulo}>Criar Conta</Text>
+      <Text style={styles.titulo}>{t("register_title")}</Text>
 
-      {/* Campo Nome */}
       <TextInput
         style={styles.input}
-        placeholder="Nome completo"
+        placeholder={t("full_name_placeholder")}
         placeholderTextColor="#aaa"
         value={nome}
         onChangeText={setNome}
       />
 
-      {/* Campo Email */}
       <TextInput
         style={styles.input}
-        placeholder="E-mail"
+        placeholder={t("email_placeholder")}
         placeholderTextColor="#aaa"
         keyboardType="email-address"
         autoCapitalize="none"
@@ -69,20 +76,42 @@ export default function CadastroScreen() {
         onChangeText={setEmail}
       />
 
-      {/* Campo Senha */}
       <TextInput
         style={styles.input}
-        placeholder="Senha"
+        placeholder={t("password_placeholder")}
         placeholderTextColor="#aaa"
         secureTextEntry
         value={senha}
         onChangeText={setSenha}
       />
 
-      {/* Botão */}
       <TouchableOpacity style={styles.botao} onPress={handleCadastro}>
-        <Text style={styles.textoBotao}>Cadastrar</Text>
+        <Text style={styles.textoBotao}>{t("register_button")}</Text>
       </TouchableOpacity>
+
+      <View style={{ alignItems: "center", marginTop: 40 }}>
+        <Text style={{ color: "white", fontSize: 16, marginBottom: 15 }}>
+          {t("choose_language")}
+        </Text>
+
+        <View
+          style={{ flexDirection: "row", justifyContent: "center", gap: 30 }}
+        >
+          <TouchableOpacity onPress={() => mudarIdioma("en")}>
+            <Image
+              source={require("../assets/eua.png")}
+              style={{ width: 45, height: 45 }}
+            />
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => mudarIdioma("pt")}>
+            <Image
+              source={require("../assets/brasil.png")}
+              style={{ width: 45, height: 45 }}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 }
