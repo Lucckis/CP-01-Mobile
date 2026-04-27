@@ -6,44 +6,48 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Image,
 } from "react-native";
 import { auth } from "../src/services/firebaseConfig";
 import { useRouter } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   updatePassword,
   reauthenticateWithCredential,
   EmailAuthProvider,
 } from "firebase/auth";
 
-export default function CadastroScreen() {
+import { useTranslation } from "react-i18next";
+
+export default function AlterarSenhaScreen() {
+  const { t, i18n } = useTranslation();
+  const router = useRouter();
+
   const [novaSenha, setNovaSenha] = useState("");
   const [confirmarSenha, setConfirmarSenha] = useState("");
   const [senhaAtual, setSenhaAtual] = useState("");
 
-  const router = useRouter();
+  const mudarIdioma = (lang: string) => {
+    i18n.changeLanguage(lang);
+  };
 
   const handleAlterarSenha = async () => {
     if (!novaSenha || !confirmarSenha || !senhaAtual) {
-      Alert.alert("Atenção", "Preencha todos os campos!");
+      Alert.alert(t("alert_attention"), t("alert_fill_all_fields"));
       return;
     }
     if (novaSenha !== confirmarSenha) {
-      Alert.alert("Erro", "As senhas não coincidem!");
+      Alert.alert(t("alert_error"), t("alert_passwords_dont_match"));
       return;
     }
     if (novaSenha.length < 6) {
-      Alert.alert("Erro", "A nova senha deve ter pelo menos 6 caracteres.");
+      Alert.alert(t("alert_error"), t("alert_password_too_short"));
       return;
     }
+
     try {
       const user = auth.currentUser;
-      if (!user) {
-        Alert.alert("Erro", "Nenhum usuário está logado.");
-        return;
-      }
-      if (!user.email) {
-        Alert.alert("Erro", "Não foi possível validar o e-mail do usuário.");
+      if (!user || !user.email) {
+        Alert.alert(t("alert_error"), t("alert_unauthenticated"));
         return;
       }
 
@@ -52,53 +56,75 @@ export default function CadastroScreen() {
 
       await updatePassword(user, novaSenha)
         .then(() => {
+          Alert.alert(t("alert_success"), t("alert_password_changed"));
           router.push("/Home");
-          return Alert.alert("Sucesso", "Senha Alterada com sucesso");
         })
         .catch((error) => {
           console.log("Error ao atualizar senha" + error.message);
-          return Alert.alert("Falha", "Senha não alterada.");
+          Alert.alert(t("alert_error"), t("alert_password_change_failed"));
         });
     } catch (error) {
-      console.log("Erro ao alterar senha");
+      console.log("Erro ao reautenticar");
+      Alert.alert(t("alert_error"), t("alert_invalid_current_password"));
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.titulo}>Alterar Senha</Text>
+      <Text style={styles.titulo}>{t("change_password_title")}</Text>
 
-      {/* Campo Nome */}
       <TextInput
         style={styles.input}
-        placeholder="Digite a senha atual"
+        placeholder={t("current_password_placeholder")}
         placeholderTextColor="#aaa"
+        secureTextEntry
         value={senhaAtual}
         onChangeText={setSenhaAtual}
       />
 
-      {/* Campo Email */}
       <TextInput
         style={styles.input}
-        placeholder="Digite a nova senha"
+        placeholder={t("new_password_placeholder")}
         placeholderTextColor="#aaa"
+        secureTextEntry
         value={novaSenha}
         onChangeText={setNovaSenha}
       />
 
-      {/* Campo Senha */}
       <TextInput
         style={styles.input}
-        placeholder="Confirme a nova senha"
+        placeholder={t("confirm_new_password_placeholder")}
         placeholderTextColor="#aaa"
+        secureTextEntry
         value={confirmarSenha}
         onChangeText={setConfirmarSenha}
       />
 
-      {/* Botão */}
       <TouchableOpacity style={styles.botao} onPress={handleAlterarSenha}>
-        <Text style={styles.textoBotao}>Alterar Senha</Text>
+        <Text style={styles.textoBotao}>{t("change_password_button")}</Text>
       </TouchableOpacity>
+
+      <View style={{ alignItems: "center", marginTop: 40 }}>
+        <Text style={{ color: "white", fontSize: 16, marginBottom: 15 }}>
+          {t("choose_language")}
+        </Text>
+        <View
+          style={{ flexDirection: "row", justifyContent: "center", gap: 30 }}
+        >
+          <TouchableOpacity onPress={() => mudarIdioma("en")}>
+            <Image
+              source={require("../assets/eua.png")}
+              style={{ width: 45, height: 45 }}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => mudarIdioma("pt")}>
+            <Image
+              source={require("../assets/brasil.png")}
+              style={{ width: 45, height: 45 }}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
     </View>
   );
 }
@@ -133,9 +159,5 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
   },
-  textoBotao: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
+  textoBotao: { color: "#fff", fontSize: 18, fontWeight: "bold" },
 });
