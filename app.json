@@ -29,7 +29,8 @@
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
-        "FOREGROUND_SERVICE"
+        "FOREGROUND_SERVICE",
+        "POST_NOTIFICATIONS"
       ]
     },
     "web": {
@@ -42,7 +43,8 @@
         {
           "locationAlwaysPermission": "O notasApp precisa da sua localização para salvar onde a nota foi criada."
         }
-      ]
+      ],
+      "expo-notifications"
     ]
   }
 }

@@ -30,8 +30,18 @@ import {
 } from "firebase/firestore";
 import { salvarNotaUsuario } from "../src/services/userDataService";
 import { useTranslation } from "react-i18next";
-
 import * as Location from "expo-location";
+import * as Notifications from "expo-notifications";
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 type Nota = {
   id: string;
@@ -50,22 +60,48 @@ export default function Home() {
   const [modalEditarVisivel, setModalEditarVisivel] = useState(false);
   const [notaSelecionadaId, setNotaSelecionadaId] = useState("");
   const [novoValorNota, setNovoValorNota] = useState("");
+  const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
 
   const mudarIdioma = (lang: string) => i18n.changeLanguage(lang);
 
   useEffect(() => {
     (async () => {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
+      let { status: locStatus } =
+        await Location.requestForegroundPermissionsAsync();
+      if (locStatus !== "granted") {
         Alert.alert(t("alert_attention"), t("alert_location_permission"));
+      }
+
+      const { status: existingStatus } =
+        await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+
+      if (existingStatus !== "granted") {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus !== "granted") {
+        console.log("Permissão de notificação não concedida.");
+        return;
+      }
+
+      try {
+        const tokenData = await Notifications.getExpoPushTokenAsync();
+        setExpoPushToken(tokenData.data);
+        console.log("Token de Notificação:", tokenData.data);
+      } catch (error) {
+        console.log("Erro ao gerar token de notificação:", error);
       }
     })();
   }, []);
 
   useEffect(() => {
     let unsubscribeNotas: (() => void) | undefined;
+
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (unsubscribeNotas) unsubscribeNotas();
+
       if (!user) {
         setNotas([]);
         return;
@@ -88,11 +124,22 @@ export default function Home() {
         setNotas(dados);
       });
     });
+
     return () => {
       unsubscribeAuth();
       if (unsubscribeNotas) unsubscribeNotas();
     };
   }, []);
+
+  const dispararNotificacaoLocal = async (notaTexto: string) => {
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: t("notification_new_note_title") || "Nova Nota Criada!",
+        body: `${t("notification_new_note_body") || "Você salvou:"} ${notaTexto}`,
+      },
+      trigger: null,
+    });
+  };
 
   const salvarNota = async () => {
     if (!valorNota.trim()) {
@@ -122,10 +169,14 @@ export default function Home() {
         longitude,
         enderecoStr,
       );
+
+      await dispararNotificacaoLocal(valorNota.trim());
+
       setValorNota("");
     } catch (error) {
-      console.log("Erro ao salvar nota:", error);
+      console.log("Erro ao salvar nota com GPS:", error);
       await salvarNotaUsuario(user.uid, valorNota.trim(), null, null, null);
+      await dispararNotificacaoLocal(valorNota.trim());
       setValorNota("");
     }
   };
@@ -139,7 +190,7 @@ export default function Home() {
     try {
       await deleteDoc(doc(db, "notes", nota.id));
     } catch (error) {
-      console.log(error);
+      console.log("Erro ao excluir:", error);
     }
   };
 
@@ -156,6 +207,7 @@ export default function Home() {
   };
 
   const atualizarNota = async () => {
+    if (!novoValorNota.trim()) return;
     try {
       await updateDoc(doc(db, "notes", notaSelecionadaId), {
         valor: novoValorNota.trim(),
@@ -199,6 +251,7 @@ export default function Home() {
           data={notas}
           style={styles.lista}
           contentContainerStyle={styles.listaConteudo}
+          keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <ItemNota
               valor={item.valor}
@@ -209,7 +262,6 @@ export default function Home() {
               onEditPress={() => abrirModalEdicao(item)}
             />
           )}
-          keyExtractor={(item) => item.id}
           ListEmptyComponent={
             <Text style={styles.emptyText}>{t("no_notes_found")}</Text>
           }
